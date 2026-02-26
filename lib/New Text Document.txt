@@ -1,0 +1,128 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'screens/product_details_screen.dart';
+import 'screens/cart_screen.dart';
+
+
+void main() {
+  runApp(const EasyShopApp());
+}
+
+class EasyShopApp extends StatelessWidget {
+  const EasyShopApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: ProductScreen(),
+    );
+  }
+}
+
+class ProductScreen extends StatefulWidget {
+  const ProductScreen({super.key});
+
+  @override
+  State<ProductScreen> createState() => _ProductScreenState();
+}
+
+class _ProductScreenState extends State<ProductScreen> {
+  final String baseUrl = "https://www.easyshop-eg.com";
+  final String consumerKey = "ck_938738261839e9dda4bc1b97834838f196a96d79";
+  final String consumerSecret = "cs_8e6a23f3c51e84597cd6c7148e8ad7f303ce506c";
+
+  List products = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchProducts();
+  }
+
+  Future<void> fetchProducts() async {
+    final url = Uri.parse(
+        "$baseUrl/wp-json/wc/v3/products?consumer_key=$consumerKey&consumer_secret=$consumerSecret");
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      setState(() {
+        products = json.decode(response.body);
+      });
+    } else {
+      print("Error: ${response.statusCode}");
+      print(response.body);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    appBar: AppBar(
+  title: const Text("EasyShop"),
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.shopping_cart),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const CartScreen(),
+          ),
+        );
+      },
+    ),
+  ],
+),
+
+      body: products.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : GridView.builder(
+              padding: const EdgeInsets.all(10),
+              gridDelegate:
+                  const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.7,
+              ),
+              itemCount: products.length,
+              itemBuilder: (context, index) {
+                return InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProductDetailsScreen(
+                          product: products[index],
+                        ),
+                      ),
+                    );
+                  },
+                  child: Card(
+                    child: Column(
+                      children: [
+                        Image.network(
+                          products[index]['images'].isNotEmpty
+                              ? products[index]['images'][0]['src']
+                              : "",
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(
+                            products[index]['name'],
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text("${products[index]['price']} EGP"),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+    ),
+  }
+}
