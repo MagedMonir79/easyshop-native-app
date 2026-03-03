@@ -1,8 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/auth_service.dart';
-import '../../user/provider/user_provider.dart';
-// 🔥 جديد: هنستخدمه لاحقًا لما نربط الكارت
-import '../../cart/provider/cart_provider.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService();
@@ -11,7 +8,7 @@ final authServiceProvider = Provider<AuthService>((ref) {
 final authProvider =
     StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final authService = ref.read(authServiceProvider);
-  return AuthNotifier(authService, ref);
+  return AuthNotifier(authService);
 });
 
 class AuthState {
@@ -27,7 +24,7 @@ class AuthState {
 
   factory AuthState.initial() {
     return const AuthState(
-      isLoading: true,
+      isLoading: true, // ✅ يبدأ Loading
       isAuthenticated: false,
     );
   }
@@ -48,14 +45,12 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthService authService;
-  final Ref ref;
 
-  AuthNotifier(this.authService, this.ref)
+  AuthNotifier(this.authService)
       : super(AuthState.initial()) {
-    checkLoginStatus();
+    checkLoginStatus(); // ✅ يتنفذ تلقائي عند بدء التطبيق
   }
 
-  /// 🔐 LOGIN
   Future<void> login(
       String email, String password) async {
 
@@ -74,16 +69,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isAuthenticated: true,
       );
 
-      // 🟢 Fetch user immediately after login
-      await ref
-          .read(userProvider.notifier)
-          .fetchCurrentUser();
-
-      // 🔥🔥 بعد تسجيل الدخول نعيد تحميل السلة من السيرفر
-      try {
-        await ref.read(cartProvider.notifier).loadCart();
-      } catch (_) {}
-
     } else {
       state = const AuthState(
         isLoading: false,
@@ -93,34 +78,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// 🔍 CHECK STORED TOKEN (محسنة بالأمان)
   Future<void> checkLoginStatus() async {
 
-    state = state.copyWith(isLoading: true);
+    final token = await authService.getToken();
 
-    final isValid =
-        await authService.validateStoredToken();
-
-    if (isValid) {
+    if (token != null && token.isNotEmpty) {
 
       state = const AuthState(
         isLoading: false,
         isAuthenticated: true,
       );
 
-      // 🟢 Auto fetch user on app start
-      await ref
-          .read(userProvider.notifier)
-          .fetchCurrentUser();
-
-      // 🔥🔥 تحميل السلة تلقائيًا لو المستخدم مسجل دخول
-      try {
-        await ref.read(cartProvider.notifier).loadCart();
-      } catch (_) {}
-
     } else {
-
-      await authService.clearAllAuthData();
 
       state = const AuthState(
         isLoading: false,
@@ -129,29 +98,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// 🚪 LOGOUT (محسنة لحل مشكلة السلة)
   Future<void> logout() async {
-
-    state = state.copyWith(isLoading: true);
-
     await authService.logout();
-
-    // 🔴 Clear user state
-    ref.read(userProvider.notifier).clearUser();
-
-    // 🔥🔥 مهم جدًا — Reset أي Provider مربوط بالمستخدم
-    try {
-      ref.invalidate(userProvider);
-    } catch (_) {}
-
-    try {
-      ref.invalidate(authServiceProvider);
-    } catch (_) {}
-
-    // 🔥🔥🔥 السطر المهم لحل مشكلة بقاء السلة
-    try {
-      ref.invalidate(cartProvider);
-    } catch (_) {}
 
     state = const AuthState(
       isLoading: false,

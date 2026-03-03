@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // ✅ إضافة جديدة
 
 import 'product_details_screen.dart';
 import 'cart_screen.dart';
 import '../features/auth/view/login_screen.dart';
 import '../features/auth/provider/auth_provider.dart';
+import '../features/user/provider/user_provider.dart';
 
 class ProductScreen extends ConsumerStatefulWidget {
   const ProductScreen({super.key});
@@ -27,10 +29,30 @@ class _ProductScreenState
 
   List products = [];
 
+  // ✅ إضافة SecureStorage
+  final FlutterSecureStorage _storage =
+      const FlutterSecureStorage();
+
+  String? storedUserName; // ✅ اسم مخزن fallback
+
   @override
   void initState() {
     super.initState();
     fetchProducts();
+    _loadStoredUserName(); // ✅ تحميل الاسم المخزن
+  }
+
+  Future<void> _loadStoredUserName() async {
+    final name =
+        await _storage.read(key: "user_name");
+
+    if (mounted) {
+      setState(() {
+        storedUserName = name;
+      });
+    }
+
+    print("🟢 STORED NAME FROM SCREEN: $name");
   }
 
   Future<void> fetchProducts() async {
@@ -50,8 +72,25 @@ class _ProductScreenState
   Widget build(BuildContext context) {
 
     final authState = ref.watch(authProvider);
+    final user = ref.watch(userProvider);
 
     print("🟢 AUTH STATE: ${authState.isAuthenticated}");
+    print("🟢 USER STATE: ${user?.name}");
+
+    // ✅ تحديد الاسم النهائي المعروض
+    String displayName = "Guest";
+
+    if (authState.isAuthenticated) {
+      if (user != null &&
+          user.name != "User") {
+        displayName = user.name;
+      } else if (storedUserName != null &&
+          storedUserName!.isNotEmpty) {
+        displayName = storedUserName!;
+      } else {
+        displayName = "User";
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -60,18 +99,19 @@ class _ProductScreenState
           children: [
             const Text("EasyShop"),
             Text(
-              authState.isAuthenticated
-                  ? "Logged In ✅"
-                  : "Guest 👤",
-              style: const TextStyle(
+              "$displayName 👤",
+              style: TextStyle(
                 fontSize: 12,
+                color: authState.isAuthenticated
+                    ? Colors.green
+                    : Colors.grey,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
         ),
         actions: [
 
-          /// أيقونة الشخص
           IconButton(
             icon: Icon(
               Icons.person,
@@ -90,19 +130,24 @@ class _ProductScreenState
                 );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("You are already logged in ✅"),
+                  SnackBar(
+                    content: Text(
+                        "Welcome $displayName ✅"),
                   ),
                 );
               }
             },
           ),
 
-          /// زر Logout كنص واضح
           if (authState.isAuthenticated)
             TextButton(
-              onPressed: () {
-                ref.read(authProvider.notifier).logout();
+              onPressed: () async {
+                await ref
+                    .read(authProvider.notifier)
+                    .logout();
+                setState(() {
+                  storedUserName = null;
+                });
               },
               child: const Text(
                 "Logout",
@@ -113,7 +158,6 @@ class _ProductScreenState
               ),
             ),
 
-          /// Cart
           IconButton(
             icon: const Icon(Icons.shopping_cart),
             onPressed: () {
