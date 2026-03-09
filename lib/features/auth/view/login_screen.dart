@@ -6,12 +6,10 @@ class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() =>
-      _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState
-    extends ConsumerState<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   bool obscurePassword = true;
@@ -23,19 +21,14 @@ class _LoginScreenState
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next.error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.error!),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(next.error!), backgroundColor: Colors.red),
         );
       }
 
       if (next.isAuthenticated) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Login Successful 🔥"),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Login Successful 🔥")));
 
         // يرجع تلقائي للشاشة اللي قبلها
         Navigator.pop(context);
@@ -75,9 +68,9 @@ class _LoginScreenState
                 labelText: "Password",
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
-                  icon: Icon(obscurePassword
-                      ? Icons.visibility
-                      : Icons.visibility_off),
+                  icon: Icon(
+                    obscurePassword ? Icons.visibility : Icons.visibility_off,
+                  ),
                   onPressed: () {
                     setState(() {
                       obscurePassword = !obscurePassword;
@@ -104,9 +97,7 @@ class _LoginScreenState
                             );
                       },
                 child: authState.isLoading
-                    ? const CircularProgressIndicator(
-                        color: Colors.white,
-                      )
+                    ? const CircularProgressIndicator(color: Colors.white)
                     : const Text("Login"),
               ),
             ),
@@ -120,9 +111,7 @@ class _LoginScreenState
               },
               child: const Text(
                 "Continue as Guest",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
           ],

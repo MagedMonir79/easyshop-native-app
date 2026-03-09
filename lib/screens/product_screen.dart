@@ -14,24 +14,18 @@ class ProductScreen extends ConsumerStatefulWidget {
   const ProductScreen({super.key});
 
   @override
-  ConsumerState<ProductScreen> createState() =>
-      _ProductScreenState();
+  ConsumerState<ProductScreen> createState() => _ProductScreenState();
 }
 
-class _ProductScreenState
-    extends ConsumerState<ProductScreen> {
-
+class _ProductScreenState extends ConsumerState<ProductScreen> {
   final String baseUrl = "https://www.easyshop-eg.com";
-  final String consumerKey =
-      "ck_938738261839e9dda4bc1b97834838f196a96d79";
-  final String consumerSecret =
-      "cs_8e6a23f3c51e84597cd6c7148e8ad7f303ce506c";
+  final String consumerKey = "ck_938738261839e9dda4bc1b97834838f196a96d79";
+  final String consumerSecret = "cs_8e6a23f3c51e84597cd6c7148e8ad7f303ce506c";
 
   List products = [];
 
   // ✅ إضافة SecureStorage
-  final FlutterSecureStorage _storage =
-      const FlutterSecureStorage();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   String? storedUserName; // ✅ اسم مخزن fallback
 
@@ -43,8 +37,7 @@ class _ProductScreenState
   }
 
   Future<void> _loadStoredUserName() async {
-    final name =
-        await _storage.read(key: "user_name");
+    final name = await _storage.read(key: "user_name");
 
     if (mounted) {
       setState(() {
@@ -57,7 +50,8 @@ class _ProductScreenState
 
   Future<void> fetchProducts() async {
     final url = Uri.parse(
-        "$baseUrl/wp-json/wc/v3/products?consumer_key=$consumerKey&consumer_secret=$consumerSecret");
+      "$baseUrl/wp-json/wc/v3/products?consumer_key=$consumerKey&consumer_secret=$consumerSecret",
+    );
 
     final response = await http.get(url);
 
@@ -70,7 +64,6 @@ class _ProductScreenState
 
   @override
   Widget build(BuildContext context) {
-
     final authState = ref.watch(authProvider);
     final user = ref.watch(userProvider);
 
@@ -81,11 +74,9 @@ class _ProductScreenState
     String displayName = "Guest";
 
     if (authState.isAuthenticated) {
-      if (user != null &&
-          user.name != "User") {
+      if (user != null && user.name != "User") {
         displayName = user.name;
-      } else if (storedUserName != null &&
-          storedUserName!.isNotEmpty) {
+      } else if (storedUserName != null && storedUserName!.isNotEmpty) {
         displayName = storedUserName!;
       } else {
         displayName = "User";
@@ -102,38 +93,27 @@ class _ProductScreenState
               "$displayName 👤",
               style: TextStyle(
                 fontSize: 12,
-                color: authState.isAuthenticated
-                    ? Colors.green
-                    : Colors.grey,
+                color: authState.isAuthenticated ? Colors.green : Colors.grey,
                 fontWeight: FontWeight.w500,
               ),
             ),
           ],
         ),
         actions: [
-
           IconButton(
             icon: Icon(
               Icons.person,
-              color: authState.isAuthenticated
-                  ? Colors.green
-                  : Colors.grey,
+              color: authState.isAuthenticated ? Colors.green : Colors.grey,
             ),
             onPressed: () {
               if (!authState.isAuthenticated) {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        const LoginScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
                 );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                        "Welcome $displayName ✅"),
-                  ),
+                  SnackBar(content: Text("Welcome $displayName ✅")),
                 );
               }
             },
@@ -142,9 +122,7 @@ class _ProductScreenState
           if (authState.isAuthenticated)
             TextButton(
               onPressed: () async {
-                await ref
-                    .read(authProvider.notifier)
-                    .logout();
+                await ref.read(authProvider.notifier).logout();
                 setState(() {
                   storedUserName = null;
                 });
@@ -163,10 +141,7 @@ class _ProductScreenState
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      const CartScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const CartScreen()),
               );
             },
           ),
@@ -177,8 +152,7 @@ class _ProductScreenState
           ? const Center(child: CircularProgressIndicator())
           : GridView.builder(
               padding: const EdgeInsets.all(10),
-              gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 childAspectRatio: 0.7,
               ),
@@ -199,58 +173,44 @@ class _ProductScreenState
                   child: Card(
                     elevation: 3,
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: ClipRRect(
-                            borderRadius:
-                                const BorderRadius.vertical(
-                                    top: Radius.circular(12)),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(12),
+                            ),
                             child: Image.network(
                               product['images'].isNotEmpty
                                   ? product['images'][0]['src']
                                   : "",
                               width: double.infinity,
                               fit: BoxFit.cover,
-                              errorBuilder:
-                                  (context, error,
-                                      stackTrace) {
-                                return const Center(
-                                  child: Icon(Icons.image),
-                                );
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Center(child: Icon(Icons.image));
                               },
                             ),
                           ),
                         ),
                         Padding(
-                          padding:
-                              const EdgeInsets.all(8.0),
+                          padding: const EdgeInsets.all(8.0),
                           child: Text(
                             product['name'],
                             maxLines: 2,
-                            overflow:
-                                TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight:
-                                  FontWeight.bold,
-                            ),
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
                         Padding(
-                          padding:
-                              const EdgeInsets.symmetric(
-                                  horizontal: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: Text(
                             "${product['price']} EGP",
                             style: const TextStyle(
                               color: Colors.green,
-                              fontWeight:
-                                  FontWeight.bold,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),

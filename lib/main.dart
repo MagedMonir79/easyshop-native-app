@@ -4,11 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/auth/view/auth_gate.dart';
 
 void main() {
-  runApp(
-    const ProviderScope(
-      child: EasyShopApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: EasyShopApp()));
 }
 
 class EasyShopApp extends StatelessWidget {

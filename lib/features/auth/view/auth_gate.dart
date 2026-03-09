@@ -13,11 +13,7 @@ class AuthGate extends ConsumerWidget {
 
     // أثناء التحميل نعرض سبينر بسيط
     if (authState.isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     // 🔥 دايماً افتح المنتجات سواء مسجل أو لأ

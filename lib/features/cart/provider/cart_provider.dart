@@ -2,10 +2,8 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../../auth/provider/auth_provider.dart';
-import '../../auth/data/auth_service.dart';
 
-final cartProvider =
-    StateNotifierProvider<CartNotifier, CartState>((ref) {
+final cartProvider = StateNotifierProvider<CartNotifier, CartState>((ref) {
   return CartNotifier(ref);
 });
 
@@ -23,11 +21,7 @@ class CartState {
   });
 
   factory CartState.initial() {
-    return const CartState(
-      isLoading: false,
-      items: [],
-      total: 0.0,
-    );
+    return const CartState(isLoading: false, items: [], total: 0.0);
   }
 
   CartState copyWith({
@@ -62,13 +56,10 @@ class CartItem {
 
   factory CartItem.fromJson(Map<String, dynamic> json) {
     return CartItem(
-      productId:
-          int.tryParse(json['product_id'].toString()) ?? 0,
+      productId: int.tryParse(json['product_id'].toString()) ?? 0,
       name: json['name'] ?? '',
-      quantity:
-          int.tryParse(json['quantity'].toString()) ?? 0,
-      price:
-          double.tryParse(json['price'].toString()) ?? 0.0,
+      quantity: int.tryParse(json['quantity'].toString()) ?? 0,
+      price: double.tryParse(json['price'].toString()) ?? 0.0,
       image: json['image'] ?? '',
     );
   }
@@ -79,8 +70,7 @@ class CartNotifier extends StateNotifier<CartState> {
 
   CartNotifier(this.ref) : super(CartState.initial());
 
-  String get baseUrl =>
-      "https://www.easyshop-eg.com/wp-json/easyshop/v1";
+  String get baseUrl => "https://www.easyshop-eg.com/wp-json/easyshop/v1";
 
   Future<Map<String, String>> _headers() async {
     final authService = ref.read(authServiceProvider);
@@ -102,31 +92,22 @@ class CartNotifier extends StateNotifier<CartState> {
       print("🟢 STATUS CODE: ${response.statusCode}");
       print("🟢 RAW BODY: ${response.body}");
 
-      if (response.statusCode == 200 &&
-          response.body.isNotEmpty) {
-
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
         final data = jsonDecode(response.body);
 
         if (data['items'] == null) {
           print("⚠️ ITEMS NULL FROM SERVER");
-          state = state.copyWith(
-              isLoading: false,
-              items: [],
-              total: 0.0);
+          state = state.copyWith(isLoading: false, items: [], total: 0.0);
           return;
         }
 
-        final List<CartItem> loadedItems =
-            (data['items'] as List)
-                .map((e) => CartItem.fromJson(e))
-                .toList();
+        final List<CartItem> loadedItems = (data['items'] as List)
+            .map((e) => CartItem.fromJson(e))
+            .toList();
 
-        final total =
-            double.tryParse(data['total'].toString()) ??
-                0.0;
+        final total = double.tryParse(data['total'].toString()) ?? 0.0;
 
-        print(
-            "🟢 ITEMS COUNT: ${loadedItems.length}");
+        print("🟢 ITEMS COUNT: ${loadedItems.length}");
         print("🟢 TOTAL: $total");
 
         state = state.copyWith(
@@ -137,32 +118,23 @@ class CartNotifier extends StateNotifier<CartState> {
       } else if (response.statusCode == 401) {
         _handleUnauthorized();
       } else {
-        state = state.copyWith(
-          isLoading: false,
-          error: "Failed to load cart",
-        );
+        state = state.copyWith(isLoading: false, error: "Failed to load cart");
       }
     } catch (e) {
       print("❌ LOAD CART ERROR: $e");
-      state = state.copyWith(
-          isLoading: false,
-          error: e.toString());
+      state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
   /// ➕ ADD TO CART
-  Future<void> addToCart(
-      int productId, int quantity) async {
+  Future<void> addToCart(int productId, int quantity) async {
     try {
       print("🟡 ADDING PRODUCT: $productId");
 
       final response = await http.post(
         Uri.parse("$baseUrl/cart/add"),
         headers: await _headers(),
-        body: jsonEncode({
-          "product_id": productId,
-          "quantity": quantity,
-        }),
+        body: jsonEncode({"product_id": productId, "quantity": quantity}),
       );
 
       print("🟢 ADD RESPONSE: ${response.body}");
@@ -179,16 +151,12 @@ class CartNotifier extends StateNotifier<CartState> {
   }
 
   /// 🔄 UPDATE QUANTITY
-  Future<void> updateQuantity(
-      int productId, int quantity) async {
+  Future<void> updateQuantity(int productId, int quantity) async {
     try {
       final response = await http.post(
         Uri.parse("$baseUrl/cart/update"),
         headers: await _headers(),
-        body: jsonEncode({
-          "product_id": productId,
-          "quantity": quantity,
-        }),
+        body: jsonEncode({"product_id": productId, "quantity": quantity}),
       );
 
       if (response.statusCode == 200) {
@@ -207,9 +175,7 @@ class CartNotifier extends StateNotifier<CartState> {
       final response = await http.post(
         Uri.parse("$baseUrl/cart/remove"),
         headers: await _headers(),
-        body: jsonEncode({
-          "product_id": productId,
-        }),
+        body: jsonEncode({"product_id": productId}),
       );
 
       if (response.statusCode == 200) {

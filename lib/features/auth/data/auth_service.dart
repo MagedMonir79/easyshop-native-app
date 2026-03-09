@@ -12,9 +12,7 @@ class AuthService {
   late final ApiClient _apiClient;
 
   AuthService() {
-    _apiClient = ApiClient(
-      baseUrl: "$baseUrl/wp-json",
-    );
+    _apiClient = ApiClient(baseUrl: "$baseUrl/wp-json");
   }
 
   /// 🔐 LOGIN
@@ -24,19 +22,12 @@ class AuthService {
       print("📧 Email: $email");
       print("🔐 Password Length: ${password.length}");
 
-      final uri = Uri.parse(
-        "$baseUrl/wp-json/jwt-auth/v1/token",
-      );
+      final uri = Uri.parse("$baseUrl/wp-json/jwt-auth/v1/token");
 
       final response = await http.post(
         uri,
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: {
-          "username": email,
-          "password": password,
-        },
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        body: {"username": email, "password": password},
       );
 
       print("🔵 LOGIN STATUS: ${response.statusCode}");
@@ -48,13 +39,9 @@ class AuthService {
         if (data.containsKey('token') &&
             data['token'] != null &&
             data['token'].toString().isNotEmpty) {
-
           final token = data['token'];
 
-          await _storage.write(
-            key: "token",
-            value: token,
-          );
+          await _storage.write(key: "token", value: token);
 
           print("✅ TOKEN SAVED SUCCESSFULLY");
 
@@ -85,24 +72,18 @@ class AuthService {
             print("🟡 Trying token validate endpoint...");
 
             final validateResponse = await http.post(
-              Uri.parse(
-                "$baseUrl/wp-json/jwt-auth/v1/token/validate",
-              ),
-              headers: {
-                "Authorization": "Bearer $token",
-              },
+              Uri.parse("$baseUrl/wp-json/jwt-auth/v1/token/validate"),
+              headers: {"Authorization": "Bearer $token"},
             );
 
             print("🟡 VALIDATE STATUS: ${validateResponse.statusCode}");
             print("🟡 VALIDATE BODY: ${validateResponse.body}");
 
             if (validateResponse.statusCode == 200) {
-              final validateData =
-                  jsonDecode(validateResponse.body);
+              final validateData = jsonDecode(validateResponse.body);
 
               if (validateData["data"]?["user"]?["display_name"] != null) {
-                final realName =
-                    validateData["data"]["user"]["display_name"];
+                final realName = validateData["data"]["user"]["display_name"];
 
                 await _storage.write(
                   key: "user_name",
@@ -125,7 +106,6 @@ class AuthService {
       }
 
       return null;
-
     } catch (e) {
       print("🔥 LOGIN ERROR: $e");
       return null;
@@ -169,18 +149,13 @@ class AuthService {
 
     try {
       final response = await http.post(
-        Uri.parse(
-          "$baseUrl/wp-json/jwt-auth/v1/token/validate",
-        ),
-        headers: {
-          "Authorization": "Bearer $token",
-        },
+        Uri.parse("$baseUrl/wp-json/jwt-auth/v1/token/validate"),
+        headers: {"Authorization": "Bearer $token"},
       );
 
       print("🟡 STORED TOKEN VALIDATE STATUS: ${response.statusCode}");
 
       return response.statusCode == 200;
-
     } catch (e) {
       print("⚠️ STORED TOKEN VALIDATE ERROR: $e");
       return false;

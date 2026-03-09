@@ -12,9 +12,7 @@ class ApiClient {
   Future<Map<String, String>> _getHeaders() async {
     final token = await _storage.read(key: "token");
 
-    final headers = {
-      'Content-Type': 'application/json',
-    };
+    final headers = {'Content-Type': 'application/json'};
 
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';

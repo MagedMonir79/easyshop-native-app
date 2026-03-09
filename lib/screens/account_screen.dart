@@ -7,18 +7,14 @@ class AccountScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("My Account"),
-      ),
+      appBar: AppBar(title: const Text("My Account")),
       body: Center(
         child: authState.isAuthenticated
             ? Column(
-                mainAxisAlignment:
-                    MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(
                     Icons.verified_user,
@@ -28,16 +24,12 @@ class AccountScreen extends ConsumerWidget {
                   const SizedBox(height: 20),
                   const Text(
                     "You are logged in ✅",
-                    style: TextStyle(
-                      fontSize: 18,
-                    ),
+                    style: TextStyle(fontSize: 18),
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () {
-                      ref
-                          .read(authProvider.notifier)
-                          .logout();
+                      ref.read(authProvider.notifier).logout();
                       Navigator.pop(context);
                     },
                     child: const Text("Logout"),
