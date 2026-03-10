@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../features/cart/provider/cart_provider.dart';
-import '../widgets/product_image_slider.dart';
-import '../widgets/product_variation_selector.dart';
 
 class ProductDetailsScreen extends ConsumerStatefulWidget {
   final dynamic product;
@@ -25,10 +23,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   int quantity = 1;
   String? selectedColor;
   String? selectedSize;
-  Map? selectedVariation;
-  String? selectedPrice;
-  String? selectedImage;
-
   final String baseUrl = "https://www.easyshop-eg.com";
   final String consumerKey = "ck_938738261839e9dda4bc1b97834838f196a96d79";
   final String consumerSecret = "cs_8e6a23f3c51e84597cd6c7148e8ad7f303ce506c";
@@ -37,8 +31,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   List<String> colors = [];
   List<String> sizes = [];
   bool isLoadingVariations = false;
-
-  List images = [];
 
   @override
   void initState() {
@@ -62,7 +54,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
 
     if (response.statusCode == 200) {
       setState(() {
-        variations = json.decode(response.body) ?? [];
+        variations = json.decode(response.body);
         Set<String> colorSet = {};
         Set<String> sizeSet = {};
 
@@ -86,41 +78,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
         }
 
         colors = colorSet.toList();
-
-        /// ترتيب الألوان حسب ترتيب الصور
-        colors.sort((a, b) {
-          int indexA = images.indexWhere((img) {
-            return variations.any(
-              (v) =>
-                  v["image"]?["src"] == img["src"] &&
-                  v["attributes"].any(
-                    (attr) =>
-                        attr["name"].toString().toLowerCase().contains(
-                          "color",
-                        ) &&
-                        attr["option"].toString().toLowerCase() ==
-                            a.toLowerCase(),
-                  ),
-            );
-          });
-
-          int indexB = images.indexWhere((img) {
-            return variations.any(
-              (v) =>
-                  v["image"]?["src"] == img["src"] &&
-                  v["attributes"].any(
-                    (attr) =>
-                        attr["name"].toString().toLowerCase().contains(
-                          "color",
-                        ) &&
-                        attr["option"].toString().toLowerCase() ==
-                            b.toLowerCase(),
-                  ),
-            );
-          });
-
-          return indexA.compareTo(indexB);
-        });
         sizes = sizeSet.toList();
         sizes.sort((a, b) {
           int? aNum = int.tryParse(a);
@@ -216,96 +173,31 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
     return false;
   }
 
-  void updateSelectedVariation() {
-    for (var v in variations) {
-      String? colorValue;
-      String? sizeValue;
-
-      for (var attr in v["attributes"]) {
-        String name = attr["name"].toString().toLowerCase();
-
-        if (name.contains("color")) {
-          colorValue = attr["option"];
-        }
-
-        if (name.contains("size")) {
-          sizeValue = attr["option"];
-        }
-      }
-
-      /// حالة اختيار اللون فقط
-      if (selectedColor != null && selectedSize == null) {
-        if (colorValue != null &&
-            colorValue.toLowerCase() == selectedColor!.toLowerCase()) {
-          String? image = v["image"]?["src"];
-
-          setState(() {
-            selectedImage = image;
-          });
-
-          if (image != null) {
-            int imageIndex = images.indexWhere((img) => img["src"] == image);
-
-            if (imageIndex != -1) {
-              setState(() {
-                currentIndex = imageIndex;
-              });
-
-              controller.animateToPage(
-                imageIndex,
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeInOut,
-              );
-            }
-          }
-
-          return;
-        }
-      }
-
-      /// حالة اختيار اللون والمقاس
-      if (selectedColor != null && selectedSize != null) {
-        if (colorValue != null &&
-            sizeValue != null &&
-            colorValue.toLowerCase() == selectedColor!.toLowerCase() &&
-            sizeValue.toLowerCase() == selectedSize!.toLowerCase()) {
-          setState(() {
-            selectedVariation = v;
-            selectedPrice = v["price"];
-            selectedImage = v["image"]?["src"];
-
-            if (selectedImage != null) {
-              int imageIndex = images.indexWhere(
-                (img) => img["src"] == selectedImage,
-              );
-
-              if (imageIndex != -1) {
-                currentIndex = imageIndex;
-                controller.animateToPage(
-                  imageIndex,
-                  duration: Duration(milliseconds: 400),
-                  curve: Curves.easeInOut,
-                );
-              }
-            }
-          });
-
-          return;
-        }
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     print("FULL PRODUCT DATA:");
     print(widget.product);
 
-    images = widget.product['images'] ?? [];
+    List images = widget.product['images'] ?? [];
+    // استخراج كل المقاسات من Attributes المنتج
+    for (var attr in widget.product['attributes'] ?? []) {
+      String name = attr['name'].toString().toLowerCase();
 
-    double price = selectedPrice != null
-        ? double.tryParse(selectedPrice!) ?? 0
-        : double.tryParse(widget.product['price'] ?? "0") ?? 0;
+      if (name.contains("size")) {
+        List options = attr['options'] ?? [];
+
+        sizes = options.map((e) => e.toString()).toList();
+      }
+
+      if (name.contains("color")) {
+        List options = attr['options'] ?? [];
+
+        colors = options.map((e) => e.toString()).toList();
+      }
+    }
+
+    double price = double.tryParse(widget.product['price'] ?? "0") ?? 0;
+
     double regularPrice =
         double.tryParse(widget.product['regular_price'] ?? "0") ?? 0;
 
@@ -373,50 +265,88 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ProductImageSlider(
-              images: images,
-              controller: controller,
-              currentIndex: currentIndex,
-              selectedImage: selectedImage,
-              isOnSale: isOnSale,
-              discountPercentage: discountPercentage,
-              onPageChanged: (index) {
-                setState(() {
-                  currentIndex = index;
-                });
-              },
-              onThumbnailTap: (index) {
-                controller.jumpToPage(index);
+            /// IMAGE SLIDER
+            Stack(
+              children: [
+                SizedBox(
+                  height: 340,
+                  child: PageView.builder(
+                    controller: controller,
+                    itemCount: images.length,
+                    onPageChanged: (index) {
+                      setState(() {
+                        currentIndex = index;
+                      });
+                    },
+                    itemBuilder: (context, index) {
+                      return Image.network(
+                        images[index]['src'],
+                        fit: BoxFit.cover,
+                      );
+                    },
+                  ),
+                ),
 
-                setState(() {
-                  currentIndex = index;
-                  selectedImage = images[index]['src'];
-                });
-
-                String imageUrl = images[index]["src"];
-
-                for (var v in variations) {
-                  String? colorValue;
-                  String? variationImage = v["image"]?["src"];
-
-                  for (var attr in v["attributes"]) {
-                    String name = attr["name"].toString().toLowerCase();
-
-                    if (name.contains("color")) {
-                      colorValue = attr["option"];
-                    }
-                  }
-
-                  if (variationImage == imageUrl && colorValue != null) {
-                    setState(() {
-                      selectedColor = colorValue;
-                    });
-
-                    break;
-                  }
-                }
-              },
+                if (isOnSale)
+                  Positioned(
+                    top: 20,
+                    left: 20,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Text(
+                        "-${discountPercentage.toStringAsFixed(0)}%",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
+
+            /// THUMBNAILS
+            if (images.length > 1)
+              SizedBox(
+                height: 80,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: images.length,
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () {
+                        controller.jumpToPage(index);
+                        setState(() {
+                          currentIndex = index;
+                        });
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: currentIndex == index
+                                ? Colors.black
+                                : Colors.grey.shade300,
+                          ),
+                        ),
+                        child: Image.network(
+                          images[index]['src'],
+                          width: 70,
+                          height: 70,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
 
             /// NAME
             Padding(
@@ -473,18 +403,13 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               child: Row(
                 children: [
                   Text(
-                    selectedPrice != null
-                        ? "$selectedPrice EGP"
-                        : variations.isNotEmpty
-                        ? "${variations.map((v) => double.tryParse(v["price"] ?? "0") ?? 0).reduce((a, b) => a > b ? a : b)} - ${variations.map((v) => double.tryParse(v["price"] ?? "0") ?? 0).reduce((a, b) => a < b ? a : b)} EGP"
-                        : "$price EGP",
+                    "$price EGP",
                     style: const TextStyle(
                       fontSize: 26,
                       color: Colors.green,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(width: 10),
                   if (isOnSale)
                     Text(
@@ -499,34 +424,100 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               ),
             ),
 
-            const SizedBox(height: 10),
-            ProductVariationSelector(
-              colors: colors,
-              sizes: sizes,
-              isLoadingVariations: isLoadingVariations,
-              selectedColor: selectedColor,
-              selectedSize: selectedSize,
+            const SizedBox(height: 20),
 
-              isColorAvailable: isColorAvailable,
-              isSizeAvailable: isSizeAvailable,
+            /// COLOR SELECTOR
+            if (!isLoadingVariations && colors.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 20),
 
-              onColorSelected: (color) {
-                setState(() {
-                  selectedColor = color;
-                  selectedSize = null;
-                });
+                    const Text(
+                      "Color",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
 
-                updateSelectedVariation();
-              },
+                    const SizedBox(height: 10),
 
-              onSizeSelected: (size) {
-                setState(() {
-                  selectedSize = size;
-                });
+                    Wrap(
+                      spacing: 10,
+                      children: colors.map((color) {
+                        bool available = isColorAvailable(color);
 
-                updateSelectedVariation();
-              },
-            ),
+                        return ChoiceChip(
+                          label: Text(color),
+                          selected: selectedColor == color,
+
+                          selectedColor: Colors.black,
+                          labelStyle: TextStyle(
+                            color: selectedColor == color
+                                ? Colors.white
+                                : Colors.black,
+                          ),
+
+                          onSelected: available
+                              ? (_) {
+                                  setState(() {
+                                    selectedColor = color;
+
+                                    /// reset size when color changes
+                                    selectedSize = null;
+                                  });
+                                }
+                              : null,
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+
+            /// SIZE SELECTOR
+            if (!isLoadingVariations && sizes.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 20),
+
+                    const Text(
+                      "Size",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Wrap(
+                      spacing: 10,
+                      children: sizes.map((size) {
+                        bool available = isSizeAvailable(size);
+
+                        return ChoiceChip(
+                          label: Text(size.toString()),
+                          selected: selectedSize == size,
+                          onSelected: available
+                              ? (_) {
+                                  setState(() {
+                                    selectedSize = size;
+                                  });
+                                }
+                              : null,
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
 
             /// STOCK
             Padding(
@@ -540,7 +531,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               ),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
 
             /// SHORT DESCRIPTION
             if (shortDescription.isNotEmpty)
@@ -555,7 +546,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                 ),
               ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
 
             /// FULL DESCRIPTION
             if (fullDescription.isNotEmpty)
