@@ -28,6 +28,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   Map? selectedVariation;
   String? selectedPrice;
   String? selectedImage;
+  int stockQuantity = 0;
 
   final String baseUrl = "https://www.easyshop-eg.com";
   final String consumerKey = "ck_938738261839e9dda4bc1b97834838f196a96d79";
@@ -273,6 +274,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
             selectedVariation = v;
             selectedPrice = v["price"];
             selectedImage = v["image"]?["src"];
+            stockQuantity = v["stock_quantity"] ?? 0;
 
             if (selectedImage != null) {
               int imageIndex = images.indexWhere(
@@ -351,6 +353,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
     bool hasShipping = shippingDays.isNotEmpty;
     bool hasReturn = returnDays.isNotEmpty;
     bool hasPayment = paymentMethods.isNotEmpty;
+    bool canBuy = selectedColor != null && selectedSize != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -480,7 +483,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                         : "$price EGP",
                     style: const TextStyle(
                       fontSize: 26,
-                      color: Colors.green,
+                      color: Colors.orange,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -514,6 +517,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                 setState(() {
                   selectedColor = color;
                   selectedSize = null;
+                  quantity = 1;
                 });
 
                 updateSelectedVariation();
@@ -522,6 +526,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               onSizeSelected: (size) {
                 setState(() {
                   selectedSize = size;
+                  quantity = 1;
                 });
 
                 updateSelectedVariation();
@@ -532,9 +537,13 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                inStock ? "In Stock" : "Out of Stock",
+                selectedColor == null || selectedSize == null
+                    ? "In Stock"
+                    : stockQuantity > 0
+                    ? "Only $stockQuantity left in stock"
+                    : "Out of stock",
                 style: TextStyle(
-                  color: inStock ? Colors.green : Colors.red,
+                  color: stockQuantity > 0 ? Colors.green : Colors.blue,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -662,7 +671,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                     style: const TextStyle(fontSize: 18),
                   ),
                   IconButton(
-                    onPressed: quantity < stockQty
+                    onPressed: quantity < stockQuantity
                         ? () => setState(() => quantity++)
                         : null,
                     icon: const Icon(Icons.add_circle_outline),
@@ -683,10 +692,31 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                     height: 50,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
+                        backgroundColor: canBuy
+                            ? Colors.black
+                            : Colors.grey.shade300,
                       ),
-                      onPressed: inStock
+                      onPressed: canBuy
                           ? () async {
+                              if (selectedColor == null ||
+                                  selectedSize == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Please select color and size",
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              if (stockQuantity == 0) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("Out of stock")),
+                                );
+                                return;
+                              }
+
                               final productId =
                                   int.tryParse(
                                     widget.product['id'].toString(),
@@ -714,9 +744,11 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                     height: 50,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
+                        backgroundColor: canBuy
+                            ? Colors.orange
+                            : Colors.orange.shade200,
                       ),
-                      onPressed: inStock ? () {} : null,
+                      onPressed: canBuy ? () {} : null,
                       child: const Text(
                         "Buy Now",
                         style: TextStyle(color: Colors.white),
