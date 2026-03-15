@@ -29,13 +29,24 @@ class AuthService {
         headers: {"Content-Type": "application/x-www-form-urlencoded"},
         body: {"username": email, "password": password},
       );
-
+      print(response.body);
       print("🔵 LOGIN STATUS: ${response.statusCode}");
       print("🔵 LOGIN BODY: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print("LOGIN RESPONSE DATA: $data");
+        final userResponse = await http.get(
+          Uri.parse("$baseUrl/wp-json/wp/v2/users/me"),
+          headers: {"Authorization": "Bearer ${data['token']}"},
+        );
 
+        final userData = jsonDecode(userResponse.body);
+
+        final userId = userData['id'];
+        print("🟢 USER ID SAVED FROM API: $userId");
+        await _storage.write(key: "user_id", value: userId.toString());
+        print("🟢 USER ID SAVED: $userId");
         if (data.containsKey('token') &&
             data['token'] != null &&
             data['token'].toString().isNotEmpty) {
@@ -70,6 +81,7 @@ class AuthService {
           // ✅ محاولة جلب الاسم الحقيقي من validate
           try {
             print("🟡 Trying token validate endpoint...");
+            print("USER ID: $userId");
 
             final validateResponse = await http.post(
               Uri.parse("$baseUrl/wp-json/jwt-auth/v1/token/validate"),
@@ -83,14 +95,21 @@ class AuthService {
               final validateData = jsonDecode(validateResponse.body);
 
               if (validateData["data"]?["user"]?["display_name"] != null) {
-                final realName = validateData["data"]["user"]["display_name"];
+                if (validateData["data"]?["user"]?["display_name"] != null) {
+                  final realName = validateData["data"]["user"]["display_name"];
 
-                await _storage.write(
-                  key: "user_name",
-                  value: realName.toString(),
-                );
+                  await _storage.write(
+                    key: "user_name",
+                    value: realName.toString(),
+                  );
 
-                print("🟢 USER NAME SAVED FROM VALIDATE: $realName");
+                  await _storage.write(
+                    key: "user_id",
+                    value: validateData["data"]["user"]["id"].toString(),
+                  );
+
+                  print("🟢 USER NAME SAVED FROM VALIDATE: $realName");
+                }
               }
             }
           } catch (e) {
