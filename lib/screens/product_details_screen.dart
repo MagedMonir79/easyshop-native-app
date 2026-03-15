@@ -8,6 +8,7 @@ import '../widgets/product_variation_selector.dart';
 import 'product_details/product_details_logic.dart';
 import 'product_details/product_details_helpers.dart';
 import 'product_details/product_details_ui.dart';
+import 'package:http/http.dart' as http;
 
 class ProductDetailsScreen extends ConsumerStatefulWidget {
   final dynamic product;
@@ -123,10 +124,25 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               isFav ? Icons.favorite : Icons.favorite_border,
               color: isFav ? Colors.red : Colors.black,
             ),
-            onPressed: () {
+            onPressed: () async {
+              print("❤️ WISHLIST BUTTON PRESSED");
+
               setState(() {
                 isFav = !isFav;
               });
+
+              final productId = widget.product['id'];
+
+              print("PRODUCT ID: $productId");
+
+              final response = await http.post(
+                Uri.parse(
+                  "https://easyshop-eg.com/wp-json/easyshop/v1/wishlist/toggle",
+                ),
+                headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                body: {"product_id": productId.toString(), "user_id": "1"},
+              );
+              print("WISHLIST RESPONSE: ${response.body}");
             },
           ),
         ],
