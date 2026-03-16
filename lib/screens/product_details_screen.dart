@@ -9,6 +9,7 @@ import 'product_details/product_details_logic.dart';
 import 'product_details/product_details_helpers.dart';
 import 'product_details/product_details_ui.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ProductDetailsScreen extends ConsumerStatefulWidget {
   final dynamic product;
@@ -21,10 +22,36 @@ class ProductDetailsScreen extends ConsumerStatefulWidget {
 }
 
 class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
+  final _storage = const FlutterSecureStorage();
   late PageController controller;
   int currentIndex = 0;
   bool showFullDescription = false;
   bool isFav = false;
+  Future<void> checkWishlist() async {
+    final savedUserId = await _storage.read(key: "user_id");
+
+    if (savedUserId == null) return;
+
+    final response = await http.get(
+      Uri.parse(
+        "https://easyshop-eg.com/wp-json/easyshop/v1/wishlist/list?user_id=$savedUserId",
+      ),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (data["status"] == "success") {
+      List wishlist = data["wishlist"];
+
+      int productId = widget.product["id"];
+
+      if (wishlist.contains(productId)) {
+        setState(() {
+          isFav = true;
+        });
+      }
+    }
+  }
 
   int quantity = 1;
   String? selectedColor;
@@ -48,6 +75,7 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   @override
   void initState() {
     super.initState();
+    checkWishlist();
     controller = PageController();
     fetchVariations();
   }
@@ -130,17 +158,33 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               setState(() {
                 isFav = !isFav;
               });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    isFav ? "Added to Wishlist" : "Removed from Wishlist",
+                  ),
+                ),
+              );
 
               final productId = widget.product['id'];
-
+              final savedUserId = await _storage.read(key: "user_id");
+              print("📦 USER ID FROM STORAGE: $savedUserId");
               print("PRODUCT ID: $productId");
-
+              if (savedUserId == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Please login to use wishlist")),
+                );
+                return;
+              }
               final response = await http.post(
                 Uri.parse(
                   "https://easyshop-eg.com/wp-json/easyshop/v1/wishlist/toggle",
                 ),
                 headers: {"Content-Type": "application/x-www-form-urlencoded"},
-                body: {"product_id": productId.toString(), "user_id": "1"},
+                body: {
+                  "product_id": productId.toString(),
+                  "user_id": savedUserId.toString(),
+                },
               );
               print("WISHLIST RESPONSE: ${response.body}");
             },

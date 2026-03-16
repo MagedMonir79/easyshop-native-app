@@ -190,6 +190,8 @@ class AuthService {
 
   /// 🚪 LOGOUT
   Future<void> logout() async {
+    await _storage.delete(key: "user_id");
+    await _storage.delete(key: "token");
     await clearAllAuthData();
     print("🚪 LOGOUT DONE");
   }
