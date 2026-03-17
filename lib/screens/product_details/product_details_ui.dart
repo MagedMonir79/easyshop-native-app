@@ -178,29 +178,78 @@ extension ProductDetailsUI on ProductDetailsScreenState {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              Text(
-                selectedPrice != null
-                    ? "$selectedPrice EGP"
-                    : variations.isNotEmpty
-                    ? "${variations.map((v) => double.tryParse(v["price"] ?? "0") ?? 0).reduce((a, b) => a > b ? a : b)} - ${variations.map((v) => double.tryParse(v["price"] ?? "0") ?? 0).reduce((a, b) => a < b ? a : b)} EGP"
-                    : "${widget.product['price']} EGP",
-                style: const TextStyle(
-                  fontSize: 26,
-                  color: Colors.orange,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Builder(
+                builder: (context) {
+                  double? price;
+                  double? regular;
+                  double? sale;
 
-              const SizedBox(width: 10),
-              if (isOnSale)
-                Text(
-                  "$regularPrice EGP",
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                    decoration: TextDecoration.lineThrough,
-                  ),
-                ),
+                  if (selectedVariation != null) {
+                    price = double.tryParse(selectedVariation!["price"] ?? "0");
+                    regular = double.tryParse(
+                      selectedVariation!["regular_price"] ?? "0",
+                    );
+                    sale = double.tryParse(
+                      selectedVariation!["sale_price"] ?? "0",
+                    );
+                  } else {
+                    price = double.tryParse(widget.product['price'] ?? "0");
+                    regular = double.tryParse(
+                      widget.product['regular_price'] ?? "0",
+                    );
+                    sale = double.tryParse(widget.product['sale_price'] ?? "0");
+                  }
+
+                  final hasDiscount =
+                      sale != null &&
+                      sale > 0 &&
+                      regular != null &&
+                      sale < regular;
+
+                  /// لو مفيش اختيار Variation → اعرض الرينج
+                  if (selectedVariation == null && variations.isNotEmpty) {
+                    final prices = variations
+                        .map((v) => double.tryParse(v["price"] ?? "0") ?? 0)
+                        .toList();
+
+                    final minPrice = prices.reduce((a, b) => a < b ? a : b);
+                    final maxPrice = prices.reduce((a, b) => a > b ? a : b);
+
+                    return Text(
+                      "${minPrice.toStringAsFixed(0)} - ${maxPrice.toStringAsFixed(0)} EGP",
+                      style: const TextStyle(
+                        fontSize: 26,
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Text(
+                        "${(hasDiscount ? sale : price)?.toStringAsFixed(0)} EGP",
+                        style: const TextStyle(
+                          fontSize: 26,
+                          color: Colors.orange,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(width: 10),
+
+                      if (hasDiscount)
+                        Text(
+                          "${regular!.toStringAsFixed(0)} EGP",
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
             ],
           ),
         ),
