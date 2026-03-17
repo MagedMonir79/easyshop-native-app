@@ -2,17 +2,82 @@ import 'package:flutter/material.dart';
 import '../product_details_screen.dart';
 import '../../widgets/product_image_slider.dart';
 import '../../features/cart/provider/cart_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+final FlutterSecureStorage _storage = FlutterSecureStorage();
 
 extension ProductDetailsUI on ProductDetailsScreenState {
   Widget buildImageSlider() {
+    final regularPrice =
+        double.tryParse(
+          (selectedVariation?['regular_price'] ??
+                  widget.product['regular_price'] ??
+                  "0")
+              .toString(),
+        ) ??
+        0;
+
+    final salePrice =
+        double.tryParse(
+          (selectedVariation?['sale_price'] ??
+                  widget.product['sale_price'] ??
+                  widget.product['price'] ??
+                  "0")
+              .toString(),
+        ) ??
+        0;
     return ProductImageSlider(
+      key: ValueKey(widget.product['price']),
       images: images,
       controller: controller,
       currentIndex: currentIndex,
       selectedImage: selectedImage,
-      isOnSale: false,
-      discountPercentage: 0,
-      onPageChanged: (index) {
+      isOnSale: salePrice < regularPrice,
+      regularPrice: regularPrice,
+      salePrice: salePrice,
+      isFavorite: isFav,
+      onFavoritePressed: () async {
+        print("❤️ FINAL CLICK WORKING");
+
+        setState(() {
+          isFav = !isFav;
+        });
+
+        final productId = widget.product['id'];
+
+        final savedUserId = await _storage.read(key: "user_id");
+
+        print("USER ID: $savedUserId");
+
+        if (savedUserId == null) {
+          print("❌ USER NOT LOGGED IN");
+          return;
+        }
+
+        final response = await http.post(
+          Uri.parse(
+            "https://easyshop-eg.com/wp-json/easyshop/v1/wishlist/toggle",
+          ),
+          headers: {"Content-Type": "application/x-www-form-urlencoded"},
+          body: {
+            "product_id": productId.toString(),
+            "user_id": savedUserId.toString(),
+          },
+        );
+
+        print("WISHLIST RESPONSE: ${response.body}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isFav ? "Added to wishlist ❤️" : "Removed from wishlist",
+            ),
+            backgroundColor: isFav ? Colors.green : Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      },
+      onPageChanged: (int index) {
         setState(() {
           currentIndex = index;
         });

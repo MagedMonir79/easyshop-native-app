@@ -56,7 +56,7 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   int quantity = 1;
   String? selectedColor;
   String? selectedSize;
-  Map? selectedVariation;
+  Map<String, dynamic>? selectedVariation;
   String? selectedPrice;
   String? selectedImage;
   int stockQuantity = 0;
@@ -144,53 +144,7 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
     bool canBuy = selectedColor != null && selectedSize != null;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.product['name']),
-        actions: [
-          IconButton(
-            icon: Icon(
-              isFav ? Icons.favorite : Icons.favorite_border,
-              color: isFav ? Colors.red : Colors.black,
-            ),
-            onPressed: () async {
-              print("❤️ WISHLIST BUTTON PRESSED");
-
-              setState(() {
-                isFav = !isFav;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    isFav ? "Added to Wishlist" : "Removed from Wishlist",
-                  ),
-                ),
-              );
-
-              final productId = widget.product['id'];
-              final savedUserId = await _storage.read(key: "user_id");
-              print("📦 USER ID FROM STORAGE: $savedUserId");
-              print("PRODUCT ID: $productId");
-              if (savedUserId == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Please login to use wishlist")),
-                );
-                return;
-              }
-              final response = await http.post(
-                Uri.parse(
-                  "https://easyshop-eg.com/wp-json/easyshop/v1/wishlist/toggle",
-                ),
-                headers: {"Content-Type": "application/x-www-form-urlencoded"},
-                body: {
-                  "product_id": productId.toString(),
-                  "user_id": savedUserId.toString(),
-                },
-              );
-              print("WISHLIST RESPONSE: ${response.body}");
-            },
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text(widget.product['name'])),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
