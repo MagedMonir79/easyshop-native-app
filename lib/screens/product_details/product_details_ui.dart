@@ -4,6 +4,7 @@ import '../../widgets/product_image_slider.dart';
 import '../../features/cart/provider/cart_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../cart_screen.dart';
 
 final FlutterSecureStorage _storage = FlutterSecureStorage();
 
@@ -267,6 +268,7 @@ extension ProductDetailsUI on ProductDetailsScreenState {
     String returnDays,
     List paymentMethods,
     int stockQty,
+    bool inStock,
     bool canBuy,
   ) {
     return Column(
@@ -276,13 +278,18 @@ extension ProductDetailsUI on ProductDetailsScreenState {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            selectedColor == null || selectedSize == null
-                ? "In Stock"
-                : stockQuantity > 0
-                ? "Only $stockQuantity left in stock"
+            (inStock)
+                ? (stockQty > 0
+                      ? (stockQty < 5 ? "Only $stockQty left 🔥" : "In Stock")
+                      : "In Stock")
                 : "Out of stock",
+
             style: TextStyle(
-              color: stockQuantity > 0 ? Colors.green : Colors.blue,
+              color: !inStock
+                  ? Colors.red
+                  : (stockQty > 0 && stockQty < 5)
+                  ? Colors.orange
+                  : Colors.green,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -400,7 +407,11 @@ extension ProductDetailsUI on ProductDetailsScreenState {
               ),
               Text(quantity.toString(), style: const TextStyle(fontSize: 18)),
               IconButton(
-                onPressed: quantity < stockQuantity
+                onPressed:
+                    quantity <
+                        ((widget.product['type'] == 'variable')
+                            ? (selectedVariation != null ? stockQuantity : 0)
+                            : (stockQty > 0 ? stockQty : 999))
                     ? () => setState(() => quantity++)
                     : null,
                 icon: const Icon(Icons.add_circle_outline),
@@ -427,7 +438,8 @@ extension ProductDetailsUI on ProductDetailsScreenState {
                   ),
                   onPressed: canBuy
                       ? () async {
-                          if (selectedColor == null || selectedSize == null) {
+                          if (widget.product['type'] == 'variable' &&
+                              (selectedColor == null || selectedSize == null)) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text("Please select color and size"),
@@ -436,13 +448,12 @@ extension ProductDetailsUI on ProductDetailsScreenState {
                             return;
                           }
 
-                          if (stockQuantity == 0) {
+                          if (stockQty == 0 && !inStock) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text("Out of stock")),
                             );
                             return;
                           }
-
                           final productId =
                               int.tryParse(widget.product['id'].toString()) ??
                               0;
@@ -450,6 +461,12 @@ extension ProductDetailsUI on ProductDetailsScreenState {
                           await ref
                               .read(cartProvider.notifier)
                               .addToCart(productId, quantity);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CartScreen(),
+                            ),
+                          );
 
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text("Added to cart")),

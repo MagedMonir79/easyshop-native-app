@@ -121,7 +121,8 @@ extension ProductDetailsHelpers on ProductDetailsScreenState {
             selectedVariation = v;
             selectedPrice = v["price"];
             selectedImage = v["image"]?["src"];
-            stockQuantity = v["stock_quantity"] ?? 0;
+            stockQuantity =
+                int.tryParse(v["stock_quantity"]?.toString() ?? "0") ?? 0;
 
             if (selectedImage != null) {
               int imageIndex = images.indexWhere(
@@ -143,5 +144,9 @@ extension ProductDetailsHelpers on ProductDetailsScreenState {
         }
       }
     }
+    setState(() {
+      selectedVariation = null;
+      stockQuantity = 0;
+    });
   }
 }

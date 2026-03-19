@@ -141,8 +141,25 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
     bool hasShipping = shippingDays.isNotEmpty;
     bool hasReturn = returnDays.isNotEmpty;
     bool hasPayment = paymentMethods.isNotEmpty;
-    bool canBuy = selectedColor != null && selectedSize != null;
+    bool isVariable = widget.product['type'] == 'variable';
 
+    bool manageStock = widget.product['manage_stock'] == true;
+
+    bool hasStock = manageStock ? stockQty > 0 : inStock;
+
+    bool isExternal =
+        widget.product['external_url'] != null &&
+        widget.product['external_url'].toString().isNotEmpty;
+
+    bool canBuy = isExternal
+        ? true
+        : hasStock &&
+              (isVariable
+                  ? (variations.isNotEmpty &&
+                        selectedColor != null &&
+                        selectedSize != null &&
+                        selectedVariation != null)
+                  : true);
     return Scaffold(
       appBar: AppBar(title: Text(widget.product['name'])),
       body: SingleChildScrollView(
@@ -199,6 +216,7 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               returnDays,
               paymentMethods,
               stockQty,
+              inStock,
               canBuy,
             ),
           ],
