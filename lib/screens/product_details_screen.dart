@@ -162,9 +162,12 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                   : true);
     return Scaffold(
       appBar: AppBar(title: Text(widget.product['name'])),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await fetchVariations();
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
             buildImageSlider(),
             buildProductInfo(
@@ -175,7 +178,6 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               regularPrice,
               isOnSale,
             ),
-
             const SizedBox(height: 10),
             ProductVariationSelector(
               colors: colors,
