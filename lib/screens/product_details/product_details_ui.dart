@@ -118,6 +118,7 @@ extension ProductDetailsUI on ProductDetailsScreenState {
   }
 
   Widget buildProductInfo(
+    double price,
     double rating,
     int ratingCount,
     String vendorName,
@@ -181,24 +182,29 @@ extension ProductDetailsUI on ProductDetailsScreenState {
             children: [
               Builder(
                 builder: (context) {
-                  double? price;
-                  double? regular;
-                  double? sale;
+                  double displayPrice = price > 0
+                      ? price
+                      : double.tryParse(
+                              (productData ?? widget.product)['price'] ?? "0",
+                            ) ??
+                            0;
+                  double? regular = double.tryParse(
+                    (productData ?? widget.product)['regular_price'] ?? "0",
+                  );
 
+                  double? sale = double.tryParse(
+                    (productData ?? widget.product)['sale_price'] ?? "0",
+                  );
                   if (selectedVariation != null) {
-                    price = double.tryParse(selectedVariation!["price"] ?? "0");
+                    displayPrice =
+                        double.tryParse(selectedVariation!["price"] ?? "0") ??
+                        price;
                     regular = double.tryParse(
                       selectedVariation!["regular_price"] ?? "0",
                     );
                     sale = double.tryParse(
                       selectedVariation!["sale_price"] ?? "0",
                     );
-                  } else {
-                    price = double.tryParse(widget.product['price'] ?? "0");
-                    regular = double.tryParse(
-                      widget.product['regular_price'] ?? "0",
-                    );
-                    sale = double.tryParse(widget.product['sale_price'] ?? "0");
                   }
 
                   final hasDiscount =
@@ -228,7 +234,7 @@ extension ProductDetailsUI on ProductDetailsScreenState {
                   return Row(
                     children: [
                       Text(
-                        "${(hasDiscount ? sale : price)?.toStringAsFixed(0)} EGP",
+                        "${(hasDiscount ? sale : displayPrice)?.toStringAsFixed(0)} EGP",
                         style: const TextStyle(
                           fontSize: 26,
                           color: Colors.orange,

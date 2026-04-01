@@ -43,7 +43,7 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
     if (data["status"] == "success") {
       List wishlist = data["wishlist"];
 
-      int productId = widget.product["id"];
+      int productId = (productData ?? widget.product)["id"];
 
       if (wishlist.contains(productId)) {
         setState(() {
@@ -53,10 +53,25 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
     }
   }
 
+  Future<void> fetchProductDetails() async {
+    final url = Uri.parse(
+      "$baseUrl/wp-json/wc/v3/products/${(productData ?? widget.product)['id']}?consumer_key=$consumerKey&consumer_secret=$consumerSecret",
+    );
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      setState(() {
+        productData = json.decode(response.body);
+      });
+    }
+  }
+
   int quantity = 1;
   String? selectedColor;
   String? selectedSize;
   Map<String, dynamic>? selectedVariation;
+  Map<String, dynamic>? productData;
   String? selectedPrice;
   String? selectedImage;
   int stockQuantity = 0;
@@ -76,6 +91,7 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   void initState() {
     super.initState();
     checkWishlist();
+    fetchProductDetails();
     controller = PageController();
     fetchVariations();
   }
@@ -88,16 +104,16 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final product = productData ?? widget.product;
     print("FULL PRODUCT DATA:");
-    print(widget.product);
+    print(product);
 
-    images = widget.product['images'] ?? [];
+    images = product['images'] ?? [];
 
     double price = selectedPrice != null
         ? double.tryParse(selectedPrice!) ?? 0
-        : double.tryParse(widget.product['price'] ?? "0") ?? 0;
-    double regularPrice =
-        double.tryParse(widget.product['regular_price'] ?? "0") ?? 0;
+        : double.tryParse(product['price'] ?? "0") ?? 0;
+    double regularPrice = double.tryParse(product['regular_price'] ?? "0") ?? 0;
 
     bool isOnSale = regularPrice > price;
 
@@ -105,51 +121,52 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
         ? ((regularPrice - price) / regularPrice) * 100
         : 0;
 
-    double rating =
-        double.tryParse(widget.product['average_rating'] ?? "0") ?? 0;
+    double rating = double.tryParse(product['average_rating'] ?? "0") ?? 0;
 
-    int ratingCount =
-        int.tryParse(widget.product['rating_count'].toString()) ?? 0;
+    int ratingCount = int.tryParse(product['rating_count'].toString()) ?? 0;
 
     String shortDescription =
-        widget.product['short_description']?.toString().replaceAll(
+        product['short_description']?.toString().replaceAll(
           RegExp(r'<[^>]*>'),
           '',
         ) ??
         "";
 
     String fullDescription =
-        widget.product['description']?.toString().replaceAll(
-          RegExp(r'<[^>]*>'),
-          '',
-        ) ??
+        product['description']?.toString().replaceAll(RegExp(r'<[^>]*>'), '') ??
         "";
 
-    String vendorName = widget.product['vendor_name'] ?? "Official Store";
+    String vendorName = product['vendor_name'] ?? "Official Store";
 
-    String? vendorLogo = widget.product['vendor_logo'];
+    String? vendorLogo = product['vendor_logo'];
 
-    bool inStock = (widget.product['stock_status'] ?? "instock") == "instock";
+    bool inStock = selectedVariation != null
+        ? (selectedVariation!['stock_status'] ?? "instock") == "instock"
+        : (product['stock_status'] ?? "instock") == "instock";
 
-    int stockQty =
-        int.tryParse(widget.product['stock_quantity']?.toString() ?? "0") ?? 0;
+    int stockQty = selectedVariation != null
+        ? int.tryParse(
+                selectedVariation!['stock_quantity']?.toString() ?? "0",
+              ) ??
+              0
+        : int.tryParse(product['stock_quantity']?.toString() ?? "0") ?? 0;
 
-    String shippingDays = widget.product['shipping_days'] ?? "";
-    String returnDays = widget.product['return_days'] ?? "";
-    List paymentMethods = widget.product['allowed_payment_methods'] ?? [];
+    String shippingDays = product['shipping_days'] ?? "";
+    String returnDays = product['return_days'] ?? "";
+    List paymentMethods = product['allowed_payment_methods'] ?? [];
 
     bool hasShipping = shippingDays.isNotEmpty;
     bool hasReturn = returnDays.isNotEmpty;
     bool hasPayment = paymentMethods.isNotEmpty;
-    bool isVariable = widget.product['type'] == 'variable';
+    bool isVariable = product['type'] == 'variable';
 
-    bool manageStock = widget.product['manage_stock'] == true;
+    bool manageStock = product['manage_stock'] == true;
 
     bool hasStock = manageStock ? stockQty > 0 : inStock;
 
     bool isExternal =
-        widget.product['external_url'] != null &&
-        widget.product['external_url'].toString().isNotEmpty;
+        product['external_url'] != null &&
+        product['external_url'].toString().isNotEmpty;
 
     bool canBuy = isExternal
         ? true
@@ -161,17 +178,20 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                         selectedVariation != null)
                   : true);
     return Scaffold(
-      appBar: AppBar(title: Text(widget.product['name'])),
+      appBar: AppBar(title: Text(product['name'])),
       body: RefreshIndicator(
         onRefresh: () async {
+          await fetchProductDetails();
           await fetchVariations();
         },
+
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             buildImageSlider(),
             buildProductInfo(
               rating,
+              price,
               ratingCount,
               vendorName,
               vendorLogo,
