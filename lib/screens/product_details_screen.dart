@@ -110,10 +110,10 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
 
     images = product['images'] ?? [];
 
-    double price = selectedPrice != null
-        ? double.tryParse(selectedPrice!) ?? 0
-        : double.tryParse(product['price'] ?? "0") ?? 0;
-    double regularPrice = double.tryParse(product['regular_price'] ?? "0") ?? 0;
+    double price = double.tryParse(product['price']?.toString() ?? "0") ?? 0;
+
+    double regularPrice =
+        double.tryParse(product['regular_price']?.toString() ?? "0") ?? 0;
 
     bool isOnSale = regularPrice > price;
 
