@@ -3,7 +3,7 @@ import '../product_details_screen.dart';
 
 extension ProductDetailsHelpers on ProductDetailsScreenState {
   bool isSizeAvailable(String size) {
-    if (selectedColor == null) return true;
+    if (!selectedAttributes.containsKey('Color')) return true;
 
     for (var v in variations) {
       String? colorValue;
@@ -22,7 +22,8 @@ extension ProductDetailsHelpers on ProductDetailsScreenState {
       }
 
       if (colorValue != null &&
-          colorValue.toLowerCase() == selectedColor!.toLowerCase()) {
+          colorValue.toLowerCase() ==
+              selectedAttributes['Color']!.toLowerCase()) {
         if (sizeValue == size ||
             (sizeValue?.toLowerCase().contains("any") ?? false)) {
           return true;
@@ -34,7 +35,7 @@ extension ProductDetailsHelpers on ProductDetailsScreenState {
   }
 
   bool isColorAvailable(String color) {
-    if (selectedSize == null) return true;
+    if (!selectedAttributes.containsKey('Size')) return true;
 
     for (var v in variations) {
       String? colorValue;
@@ -54,7 +55,7 @@ extension ProductDetailsHelpers on ProductDetailsScreenState {
 
       if (colorValue != null &&
           colorValue.toLowerCase() == color.toLowerCase()) {
-        if (sizeValue == selectedSize ||
+        if (sizeValue == selectedAttributes['Size'] ||
             (sizeValue?.toLowerCase().contains("any") ?? false)) {
           return true;
         }
@@ -65,88 +66,55 @@ extension ProductDetailsHelpers on ProductDetailsScreenState {
   }
 
   void updateSelectedVariation() {
+    selectedVariation = null;
+
     for (var v in variations) {
-      String? colorValue;
-      String? sizeValue;
+      bool match = true;
 
       for (var attr in v["attributes"]) {
-        String name = attr["name"].toString().toLowerCase();
+        String name = attr["name"].toString();
+        String value = attr["option"].toString();
 
-        if (name.contains("color")) {
-          colorValue = attr["option"];
-        }
-
-        if (name.contains("size")) {
-          sizeValue = attr["option"];
+        if (selectedAttributes[name] != value) {
+          match = false;
+          break;
         }
       }
 
-      /// حالة اختيار اللون فقط
-      if (selectedColor != null && selectedSize == null) {
-        if (colorValue != null &&
-            colorValue.toLowerCase() == selectedColor!.toLowerCase()) {
-          String? image = v["image"]?["src"];
+      if (match) {
+        selectedVariation = v;
 
-          setState(() {
-            selectedImage = image;
-          });
+        selectedPrice = v["price"]?.toString();
+        selectedImage = v["image"]?["src"];
+        stockQuantity =
+            int.tryParse(v["stock_quantity"]?.toString() ?? "0") ?? 0;
 
-          if (image != null) {
-            int imageIndex = images.indexWhere((img) => img["src"] == image);
+        /// تحديث الصورة
+        if (selectedImage != null) {
+          int imageIndex = images.indexWhere(
+            (img) => img["src"] == selectedImage,
+          );
 
-            if (imageIndex != -1) {
-              setState(() {
-                currentIndex = imageIndex;
-              });
+          if (imageIndex != -1) {
+            currentIndex = imageIndex;
 
-              controller.animateToPage(
-                imageIndex,
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeInOut,
-              );
-            }
+            controller.animateToPage(
+              imageIndex,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeInOut,
+            );
           }
-
-          return;
         }
-      }
 
-      /// حالة اختيار اللون والمقاس
-      if (selectedColor != null && selectedSize != null) {
-        if (colorValue != null &&
-            sizeValue != null &&
-            colorValue.toLowerCase() == selectedColor!.toLowerCase() &&
-            sizeValue.toLowerCase() == selectedSize!.toLowerCase()) {
-          setState(() {
-            selectedVariation = v;
-            selectedPrice = v["price"];
-            selectedImage = v["image"]?["src"];
-            stockQuantity =
-                int.tryParse(v["stock_quantity"]?.toString() ?? "0") ?? 0;
-
-            if (selectedImage != null) {
-              int imageIndex = images.indexWhere(
-                (img) => img["src"] == selectedImage,
-              );
-
-              if (imageIndex != -1) {
-                currentIndex = imageIndex;
-                controller.animateToPage(
-                  imageIndex,
-                  duration: Duration(milliseconds: 400),
-                  curve: Curves.easeInOut,
-                );
-              }
-            }
-          });
-
-          return;
-        }
+        break;
       }
     }
-    setState(() {
-      selectedVariation = null;
+
+    /// لو مفيش match
+    if (selectedVariation == null) {
       stockQuantity = 0;
-    });
+    }
+
+    setState(() {});
   }
 }

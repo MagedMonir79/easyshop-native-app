@@ -68,8 +68,7 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   }
 
   int quantity = 1;
-  String? selectedColor;
-  String? selectedSize;
+  Map<String, String> selectedAttributes = {};
   Map<String, dynamic>? selectedVariation;
   Map<String, dynamic>? productData;
   String? selectedPrice;
@@ -110,19 +109,22 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
 
     images = product['images'] ?? [];
 
-    double price = double.tryParse(product['price']?.toString() ?? "0") ?? 0;
-
     double regularPrice =
         double.tryParse(product['regular_price']?.toString() ?? "0") ?? 0;
+    double price = 0;
 
+    if (selectedVariation != null) {
+      price = double.tryParse(selectedVariation!["price"].toString()) ?? 0;
+    } else {
+      price = double.tryParse(product["price"].toString()) ?? 0;
+    }
     bool isOnSale = regularPrice > price;
 
     double discountPercentage = isOnSale && regularPrice != 0
         ? ((regularPrice - price) / regularPrice) * 100
         : 0;
 
-    double rating = double.tryParse(product['average_rating'] ?? "0") ?? 0;
-
+    double rating = double.tryParse(product['average_rating'].toString()) ?? 0;
     int ratingCount = int.tryParse(product['rating_count'].toString()) ?? 0;
 
     String shortDescription =
@@ -173,8 +175,7 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
         : hasStock &&
               (isVariable
                   ? (variations.isNotEmpty &&
-                        selectedColor != null &&
-                        selectedSize != null &&
+                        selectedAttributes.isNotEmpty &&
                         selectedVariation != null)
                   : true);
     return Scaffold(
@@ -190,8 +191,8 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
           children: [
             buildImageSlider(),
             buildProductInfo(
-              rating,
               price,
+              rating,
               ratingCount,
               vendorName,
               vendorLogo,
@@ -203,16 +204,15 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               colors: colors,
               sizes: sizes,
               isLoadingVariations: isLoadingVariations,
-              selectedColor: selectedColor,
-              selectedSize: selectedSize,
+              selectedAttributes: selectedAttributes,
 
               isColorAvailable: isColorAvailable,
               isSizeAvailable: isSizeAvailable,
 
               onColorSelected: (color) {
                 setState(() {
-                  selectedColor = color;
-                  selectedSize = null;
+                  selectedAttributes['Color'] = color; // 🔥 بدل selectedColor
+                  selectedAttributes.remove('Size'); // reset size
                   quantity = 1;
                 });
 
@@ -221,7 +221,7 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
 
               onSizeSelected: (size) {
                 setState(() {
-                  selectedSize = size;
+                  selectedAttributes['Size'] = size; // 🔥 بدل selectedSize
                   quantity = 1;
                 });
 

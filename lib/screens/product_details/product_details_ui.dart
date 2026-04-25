@@ -93,21 +93,22 @@ extension ProductDetailsUI on ProductDetailsScreenState {
 
         String imageUrl = images[index]["src"];
 
+        String colorValue = "";
+
         for (var v in variations) {
-          String? colorValue;
           String? variationImage = v["image"]?["src"];
 
           for (var attr in v["attributes"]) {
             String name = attr["name"].toString().toLowerCase();
 
             if (name.contains("color")) {
-              colorValue = attr["option"];
+              colorValue = (attr["option"] ?? "").toString();
             }
           }
 
           if (variationImage == imageUrl && colorValue != null) {
             setState(() {
-              selectedColor = colorValue;
+              selectedAttributes['Color'] = colorValue;
             });
 
             break;
@@ -445,7 +446,7 @@ extension ProductDetailsUI on ProductDetailsScreenState {
                   onPressed: canBuy
                       ? () async {
                           if (widget.product['type'] == 'variable' &&
-                              (selectedColor == null || selectedSize == null)) {
+                              (selectedAttributes.isEmpty)) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text("Please select color and size"),

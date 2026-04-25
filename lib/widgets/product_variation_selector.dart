@@ -10,8 +10,7 @@ class ProductVariationSelector extends StatelessWidget {
   final List<String> sizes;
   final bool isLoadingVariations;
 
-  final String? selectedColor;
-  final String? selectedSize;
+  final Map<String, String> selectedAttributes;
 
   final bool Function(String) isColorAvailable;
   final bool Function(String) isSizeAvailable;
@@ -24,8 +23,7 @@ class ProductVariationSelector extends StatelessWidget {
     required this.colors,
     required this.sizes,
     required this.isLoadingVariations,
-    required this.selectedColor,
-    required this.selectedSize,
+    required this.selectedAttributes,
     required this.isColorAvailable,
     required this.isSizeAvailable,
     required this.onColorSelected,
@@ -66,14 +64,14 @@ class ProductVariationSelector extends StatelessWidget {
                           color: getColor(color),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: selectedColor == color
+                            color: selectedAttributes['Color'] == color
                                 ? Colors.black
                                 : Colors.grey.shade300,
                             width: 2,
                           ),
                         ),
                       ),
-                      selected: selectedColor == color,
+                      selected: selectedAttributes['Color'] == color,
                       backgroundColor: Colors.transparent,
                       selectedColor: Colors.transparent,
                       shape: const CircleBorder(),
@@ -110,7 +108,7 @@ class ProductVariationSelector extends StatelessWidget {
 
                     return ChoiceChip(
                       label: Text(size.toString()),
-                      selected: selectedSize == size,
+                      selected: selectedAttributes['Size'] == size,
                       onSelected: available
                           ? (_) => onSizeSelected(size)
                           : null,

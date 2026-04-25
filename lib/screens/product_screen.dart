@@ -165,8 +165,10 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            ProductDetailsScreen(product: product),
+                        builder: (context) => ProductDetailsScreen(
+                          product: product,
+                          key: ValueKey(product['id']), // 🔥 ده الحل
+                        ),
                       ),
                     );
                   },
