@@ -182,31 +182,60 @@ extension ProductDetailsUI on ProductDetailsScreenState {
             children: [
               Builder(
                 builder: (context) {
-                  double displayPrice = price > 0
-                      ? price
-                      : double.tryParse(
-                              (productData ?? widget.product)['price'] ?? "0",
-                            ) ??
-                            0;
-                  double? regular = double.tryParse(
-                    (productData ?? widget.product)['regular_price'] ?? "0",
-                  );
+                  double displayPrice = 0;
+                  double? regular;
+                  double? sale;
 
-                  double? sale = double.tryParse(
-                    (productData ?? widget.product)['sale_price'] ?? "0",
-                  );
+                  // 🟢 لو في variation مختار
                   if (selectedVariation != null) {
                     displayPrice =
                         double.tryParse(selectedVariation!["price"] ?? "0") ??
-                        price;
+                        0;
+
                     regular = double.tryParse(
                       selectedVariation!["regular_price"] ?? "0",
                     );
+
                     sale = double.tryParse(
                       selectedVariation!["sale_price"] ?? "0",
                     );
                   }
+                  // 🟡 لو مفيش variation مختار (نحسب الرينج أو السعر الثابت)
+                  else if (variations.isNotEmpty) {
+                    final prices = variations
+                        .map((v) => double.tryParse(v["price"] ?? "0") ?? 0)
+                        .where((p) => p > 0)
+                        .toList();
 
+                    if (prices.isNotEmpty) {
+                      final minPrice = prices.reduce((a, b) => a < b ? a : b);
+                      final maxPrice = prices.reduce((a, b) => a > b ? a : b);
+
+                      if (minPrice == maxPrice) {
+                        displayPrice = minPrice;
+                      } else {
+                        displayPrice = minPrice;
+                        regular = null;
+                        sale = null;
+                      }
+                    }
+                  }
+                  // 🔵 fallback لو مفيش variations أصلاً
+                  else {
+                    displayPrice =
+                        double.tryParse(
+                          (productData ?? widget.product)['price'] ?? "0",
+                        ) ??
+                        0;
+
+                    regular = double.tryParse(
+                      (productData ?? widget.product)['regular_price'] ?? "0",
+                    );
+
+                    sale = double.tryParse(
+                      (productData ?? widget.product)['sale_price'] ?? "0",
+                    );
+                  }
                   final hasDiscount =
                       sale != null &&
                       sale > 0 &&

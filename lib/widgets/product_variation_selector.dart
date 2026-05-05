@@ -12,6 +12,7 @@ class ProductVariationSelector extends StatelessWidget {
 
   final String? selectedColor;
   final String? selectedSize;
+  final Map<String, String> selectedAttributes;
 
   final bool Function(String) isColorAvailable;
   final bool Function(String) isSizeAvailable;
@@ -19,10 +20,18 @@ class ProductVariationSelector extends StatelessWidget {
   final Function(String) onColorSelected;
   final Function(String) onSizeSelected;
 
+  /// 🔥 NEW
+  final Map<String, List<String>> otherAttributes;
+  final Function(String, String) onAttributeSelected;
+
+  /// 🔥 الحل هنا
+  final bool Function(String, String) isAttributeAvailable;
+
   const ProductVariationSelector({
     super.key,
     required this.colors,
     required this.sizes,
+    required this.selectedAttributes,
     required this.isLoadingVariations,
     required this.selectedColor,
     required this.selectedSize,
@@ -30,6 +39,9 @@ class ProductVariationSelector extends StatelessWidget {
     required this.isSizeAvailable,
     required this.onColorSelected,
     required this.onSizeSelected,
+    required this.otherAttributes,
+    required this.onAttributeSelected,
+    required this.isAttributeAvailable, // 👈 مهم
   });
 
   @override
@@ -45,14 +57,11 @@ class ProductVariationSelector extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 8),
-
                 const Text(
                   "Color",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-
                 const SizedBox(height: 10),
-
                 Wrap(
                   spacing: 10,
                   children: colors.map((color) {
@@ -95,14 +104,11 @@ class ProductVariationSelector extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 10),
-
                 const Text(
                   "Size",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-
                 const SizedBox(height: 10),
-
                 Wrap(
                   spacing: 10,
                   children: sizes.map((size) {
@@ -120,6 +126,54 @@ class ProductVariationSelector extends StatelessWidget {
               ],
             ),
           ),
+
+        /// 🔥 OTHER ATTRIBUTES
+        if (!isLoadingVariations && otherAttributes.isNotEmpty)
+          ...otherAttributes.entries.map((entry) {
+            String attrName = entry.key;
+            List<String> values = entry.value;
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 10),
+                  Text(
+                    attrName,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 10,
+                    children: values.map((val) {
+                      bool isSelected = selectedAttributes[attrName] == val;
+
+                      /// 🔥 الربط الصح
+                      bool available = isAttributeAvailable(attrName, val);
+
+                      return ChoiceChip(
+                        label: Text(val),
+                        selected: isSelected,
+                        onSelected: available
+                            ? (_) {
+                                if (isSelected) {
+                                  onAttributeSelected(attrName, "");
+                                } else {
+                                  onAttributeSelected(attrName, val);
+                                }
+                              }
+                            : null,
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
       ],
     );
   }

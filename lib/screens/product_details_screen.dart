@@ -70,6 +70,8 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   int quantity = 1;
   String? selectedColor;
   String? selectedSize;
+  Map<String, List<String>> otherAttributes = {};
+  Map<String, String> selectedAttributes = {};
   Map<String, dynamic>? selectedVariation;
   Map<String, dynamic>? productData;
   String? selectedPrice;
@@ -167,14 +169,36 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
     bool isExternal =
         product['external_url'] != null &&
         product['external_url'].toString().isNotEmpty;
+    print("selectedAttributes: $selectedAttributes");
+    print("otherAttributes: $otherAttributes");
+    print("colors: $colors");
+    print("sizes: $sizes");
+    bool allSelected = true;
+
+    // 1. Check Color
+    if (colors.isNotEmpty && !selectedAttributes.containsKey("Color")) {
+      allSelected = false;
+    }
+
+    // 2. Check Size
+    if (sizes.isNotEmpty && !selectedAttributes.containsKey("Size")) {
+      allSelected = false;
+    }
+
+    // 3. Check other attributes
+    for (var key in otherAttributes.keys) {
+      if (!selectedAttributes.containsKey(key)) {
+        allSelected = false;
+        break;
+      }
+    }
 
     bool canBuy = isExternal
         ? true
         : hasStock &&
               (isVariable
                   ? (variations.isNotEmpty &&
-                        selectedColor != null &&
-                        selectedSize != null &&
+                        allSelected &&
                         selectedVariation != null)
                   : true);
     return Scaffold(
@@ -199,20 +223,32 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               isOnSale,
             ),
             const SizedBox(height: 10),
+
             ProductVariationSelector(
               colors: colors,
               sizes: sizes,
+              isAttributeAvailable: isAttributeAvailable,
               isLoadingVariations: isLoadingVariations,
-              selectedColor: selectedColor,
-              selectedSize: selectedSize,
+              selectedColor: selectedAttributes["Color"],
+              selectedSize: selectedAttributes["Size"],
+              selectedAttributes: selectedAttributes,
+              otherAttributes: otherAttributes,
 
               isColorAvailable: isColorAvailable,
               isSizeAvailable: isSizeAvailable,
 
               onColorSelected: (color) {
                 setState(() {
-                  selectedColor = color;
-                  selectedSize = null;
+                  if (selectedAttributes["Color"] == color) {
+                    // 👇 فك التحديد
+                    selectedColor = null;
+                    selectedAttributes.remove("Color");
+                  } else {
+                    // 👇 اختيار جديد
+                    selectedColor = color;
+                    selectedAttributes["Color"] = color;
+                  }
+
                   quantity = 1;
                 });
 
@@ -221,13 +257,37 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
 
               onSizeSelected: (size) {
                 setState(() {
-                  selectedSize = size;
+                  if (selectedAttributes["Size"] == size) {
+                    // 👇 فك التحديد
+                    selectedSize = null;
+                    selectedAttributes.remove("Size");
+                  } else {
+                    // 👇 اختيار جديد
+                    selectedSize = size;
+                    selectedAttributes["Size"] = size;
+                  }
+
+                  quantity = 1;
+                });
+
+                updateSelectedVariation();
+              },
+
+              onAttributeSelected: (name, value) {
+                setState(() {
+                  if (value.isEmpty) {
+                    selectedAttributes.remove(name);
+                  } else {
+                    selectedAttributes[name] = value;
+                  }
+
                   quantity = 1;
                 });
 
                 updateSelectedVariation();
               },
             ),
+
             buildBottomSection(
               shortDescription,
               fullDescription,

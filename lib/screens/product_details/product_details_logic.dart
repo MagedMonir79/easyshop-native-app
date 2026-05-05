@@ -24,9 +24,13 @@ extension ProductDetailsLogic on ProductDetailsScreenState {
         Set<String> colorSet = {};
         Set<String> sizeSet = {};
 
+        /// 🔥 NEW (تجميع باقي الـ attributes)
+        Map<String, Set<String>> tempAttributes = {};
+
         for (var v in variations) {
           print("VARIATION DATA:");
           print(v);
+
           if (v["attributes"] != null) {
             for (var attr in v["attributes"]) {
               String name = attr["name"].toString().toLowerCase();
@@ -34,10 +38,14 @@ extension ProductDetailsLogic on ProductDetailsScreenState {
 
               if (name.contains("color")) {
                 colorSet.add(option);
-              }
-
-              if (name.contains("size")) {
+              } else if (name.contains("size")) {
                 sizeSet.add(option);
+              } else {
+                /// 🔥 أي attribute تاني
+                if (!tempAttributes.containsKey(attr["name"])) {
+                  tempAttributes[attr["name"]] = {};
+                }
+                tempAttributes[attr["name"]]!.add(option);
               }
             }
           }
@@ -79,7 +87,9 @@ extension ProductDetailsLogic on ProductDetailsScreenState {
 
           return indexA.compareTo(indexB);
         });
+
         sizes = sizeSet.toList();
+
         sizes.sort((a, b) {
           int? aNum = int.tryParse(a);
           int? bNum = int.tryParse(b);
@@ -90,8 +100,16 @@ extension ProductDetailsLogic on ProductDetailsScreenState {
 
           return a.compareTo(b);
         });
+
+        /// 🔥 تحويل باقي الـ attributes لـ List
+        otherAttributes = tempAttributes.map(
+          (key, value) => MapEntry(key, value.toList()),
+        );
+
         print("🎨 COLORS: $colors");
         print("👟 SIZES: $sizes");
+        print("📦 OTHER ATTRIBUTES: $otherAttributes");
+
         isLoadingVariations = false;
       });
 
