@@ -10,6 +10,7 @@ import 'product_details/product_details_helpers.dart';
 import 'product_details/product_details_ui.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../favorites_manager.dart';
 
 class ProductDetailsScreen extends ConsumerStatefulWidget {
   final dynamic product;
@@ -27,6 +28,7 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   int currentIndex = 0;
   bool showFullDescription = false;
   bool isFav = false;
+
   Future<void> checkWishlist() async {
     final savedUserId = await _storage.read(key: "user_id");
 
@@ -39,17 +41,24 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
     );
 
     final data = jsonDecode(response.body);
-
+    print("WISHLIST DATA: ${response.body}");
     if (data["status"] == "success") {
-      List wishlist = data["wishlist"];
+      final List items = data["wishlist"];
 
-      int productId = (productData ?? widget.product)["id"];
+      final productId = widget.product["id"].toString();
 
-      if (wishlist.contains(productId)) {
-        setState(() {
-          isFav = true;
-        });
+      bool exists = false;
+
+      for (var item in items) {
+        if (item.toString() == productId) {
+          exists = true;
+          break;
+        }
       }
+
+      setState(() {
+        isFav = exists;
+      });
     }
   }
 
@@ -64,6 +73,7 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
       setState(() {
         productData = json.decode(response.body);
       });
+      checkWishlist();
     }
   }
 
@@ -92,10 +102,11 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    checkWishlist();
+
     fetchProductDetails();
     controller = PageController();
     fetchVariations();
+    checkWishlist(); // 👈 ضيف دي هنا
   }
 
   @override
@@ -123,8 +134,9 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
         ? ((regularPrice - price) / regularPrice) * 100
         : 0;
 
-    double rating = double.tryParse(product['average_rating'] ?? "0") ?? 0;
-
+    double rating =
+        double.tryParse(product['average_rating']?.toString() ?? "0") ?? 0;
+    print("Rating: ${product['average_rating']}");
     int ratingCount = int.tryParse(product['rating_count'].toString()) ?? 0;
 
     String shortDescription =
@@ -214,8 +226,8 @@ class ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
           children: [
             buildImageSlider(),
             buildProductInfo(
-              rating,
               price,
+              rating,
               ratingCount,
               vendorName,
               vendorLogo,

@@ -9,6 +9,7 @@ import 'cart_screen.dart';
 import '../features/auth/view/login_screen.dart';
 import '../features/auth/provider/auth_provider.dart';
 import '../features/user/provider/user_provider.dart';
+import 'package:easyshop_app/screens/wishlist_screen.dart';
 
 class ProductScreen extends ConsumerStatefulWidget {
   const ProductScreen({super.key});
@@ -100,6 +101,18 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
           ],
         ),
         actions: [
+          // ❤️ زرار Wishlist
+          IconButton(
+            icon: const Icon(Icons.favorite, color: Colors.red),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const WishlistScreen()),
+              );
+            },
+          ),
+
+          // 👤 زرار اليوزر
           IconButton(
             icon: Icon(
               Icons.person,
@@ -119,6 +132,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
             },
           ),
 
+          // 🚪 Logout
           if (authState.isAuthenticated)
             TextButton(
               onPressed: () async {
@@ -136,6 +150,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
               ),
             ),
 
+          // 🛒 Cart
           IconButton(
             icon: const Icon(Icons.shopping_cart),
             onPressed: () {

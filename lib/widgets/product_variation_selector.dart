@@ -68,19 +68,34 @@ class ProductVariationSelector extends StatelessWidget {
                     bool available = isColorAvailable(color);
 
                     return ChoiceChip(
-                      label: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: getColor(color),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: selectedColor == color
-                                ? Colors.black
-                                : Colors.grey.shade300,
-                            width: 2,
+                      label: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: getColor(color),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: selectedColor == color
+                                    ? Colors.black
+                                    : Colors.grey.shade300,
+                                width: 2,
+                              ),
+                            ),
                           ),
-                        ),
+
+                          const SizedBox(height: 4),
+
+                          Text(
+                            color,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
                       ),
                       selected: selectedColor == color,
                       backgroundColor: Colors.transparent,

@@ -5,6 +5,8 @@ import '../../features/cart/provider/cart_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../cart_screen.dart';
+import 'package:easyshop_app/favorites_manager.dart';
+import 'dart:convert';
 
 final FlutterSecureStorage _storage = FlutterSecureStorage();
 
@@ -41,10 +43,6 @@ extension ProductDetailsUI on ProductDetailsScreenState {
       onFavoritePressed: () async {
         print("❤️ FINAL CLICK WORKING");
 
-        setState(() {
-          isFav = !isFav;
-        });
-
         final productId = widget.product['id'];
 
         final savedUserId = await _storage.read(key: "user_id");
@@ -66,6 +64,14 @@ extension ProductDetailsUI on ProductDetailsScreenState {
             "user_id": savedUserId.toString(),
           },
         );
+
+        print("WISHLIST RESPONSE: ${response.body}");
+
+        final result = jsonDecode(response.body);
+
+        setState(() {
+          isFav = result["status"] == "added";
+        });
 
         print("WISHLIST RESPONSE: ${response.body}");
         ScaffoldMessenger.of(context).showSnackBar(
@@ -168,7 +174,7 @@ extension ProductDetailsUI on ProductDetailsScreenState {
             children: [
               const Icon(Icons.star, color: Colors.amber, size: 18),
               const SizedBox(width: 5),
-              Text("$rating ($ratingCount reviews)"),
+              Text("${rating.toStringAsFixed(1)} ($ratingCount reviews)"),
             ],
           ),
         ),
@@ -185,7 +191,17 @@ extension ProductDetailsUI on ProductDetailsScreenState {
                   double displayPrice = 0;
                   double? regular;
                   double? sale;
+                  double minPrice = price;
+                  double maxPrice = price;
 
+                  if (variations.isNotEmpty) {
+                    List<double> prices = variations.map((v) {
+                      return double.tryParse(v["price"].toString()) ?? 0;
+                    }).toList();
+
+                    minPrice = prices.reduce((a, b) => a < b ? a : b);
+                    maxPrice = prices.reduce((a, b) => a > b ? a : b);
+                  }
                   // 🟢 لو في variation مختار
                   if (selectedVariation != null) {
                     displayPrice =
@@ -252,7 +268,9 @@ extension ProductDetailsUI on ProductDetailsScreenState {
                     final maxPrice = prices.reduce((a, b) => a > b ? a : b);
 
                     return Text(
-                      "${minPrice.toStringAsFixed(0)} - ${maxPrice.toStringAsFixed(0)} EGP",
+                      minPrice == maxPrice
+                          ? "${minPrice.toStringAsFixed(0)} EGP"
+                          : "${minPrice.toStringAsFixed(0)} - ${maxPrice.toStringAsFixed(0)} EGP",
                       style: const TextStyle(
                         fontSize: 26,
                         color: Colors.orange,
